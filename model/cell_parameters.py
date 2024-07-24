@@ -17,7 +17,7 @@ class CellParameters:
     k_stretch=0.08105
     kf=0.1382
     kb=0.04027
-    ksscc=1.20*1.025 #maksimal current through stretch sensitive channels
+    #ksscc=1.20*1.025 #maksimal current through stretch sensitive channels
 
     ##Stretch induced phosphorylation
     Aalpha4=1.1*0.0282
@@ -36,13 +36,13 @@ class CellParameters:
 
     #SARCO/Endoplasmic reticulum ATPase (SERCA) and plasma membrane Ca ATPase (PMCA) flux
     Vpump=5.341
-    Kpump=0.5030
+    #Kpump=0.5030
 
     #Rynodine receptor dynamics
     Ka=0.37224
     Kb=0.63601
     Kc=0.05714
-    kryr=16.04 #maximal current through rynodine receptor sensitive channels
+    #kryr=16.04 #maximal current through rynodine receptor sensitive channels
 
     ###IP3R3 receptor dynamics
     alpha1=40.0
@@ -52,7 +52,7 @@ class CellParameters:
     k3=0.5
     k1m=0.88
     k5=0.02
-    kip3r3=155.8 #maximal current through IP3 sensitive channels
+    #kip3r3=155.8 #maximal current through IP3 sensitive channels
 
     #PIP2 and IP3 dynamics and P2Y2 receptor dynamics
     PIP2tot=50000.0
@@ -71,6 +71,6 @@ class CellParameters:
     alpha=0.00002781
     rr=0.015
     K3=0.4
-    kdeg=1.25 #degradation rate of IP3
+    #kdeg=1.25 #degradation rate of IP3
 
     Na=6.02252*10**23 #Avogadro's constant

@@ -10,7 +10,7 @@ class ModelParameters:
     """
     capsule: int = 0
     t: float = 0.0 #initial time
-    dt: float = 0.05 #integration step
+    dt: float = 0.01 #integration step
     tend: float = 150.0 #end time
     time_of_stimulation: float = 5.0 #time of stimulation
 
@@ -56,7 +56,7 @@ class ModelParameters:
     point:
     Only stimulated cell secretes ATP. L0_stim = L0init
     """
-    diffusion_mode: str = 'partially-regenerative'
+    diffusion_mode: str = 'point'
     Datp: float = 236.0 #difusion constant for ATP (um^2/s)
     film_thickness: float = 100.0 ##thickness of thin film for diffusion (um)
     L0init: float = 1.0 #concentration of secreted ATP by stimulated cell (fmol)

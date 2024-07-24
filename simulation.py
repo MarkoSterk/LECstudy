@@ -4,6 +4,7 @@ Main simulation file
 # pylint: disable=C0103
 # pylint: disable=E0401
 import os
+import random
 import numpy as np
 from scipy.spatial import distance
 
@@ -20,6 +21,12 @@ from plot_activation_sequence import plot_activation_sequence
 from plot_time_series import plot_time_series
 from plot_movie_frames import plot_movie_frames
 from plot_signaling_parameters import plot_signaling_parameters
+
+def random_normal_number(mean=1.0, std_dev=0.0):
+    while True:
+        num = random.normalvariate(mean, std_dev)
+        if 0.9 <= num <= 1.1:
+            return num
 
 # Importing cell data
 # coordinates of cms
@@ -52,9 +59,17 @@ for i in range(cell_num):
     cells.append(CellModel(i, volume,
                            cell_distances[i, stimulated_cell],
                            neighbours=neighbours,
+                           parameters={
+                                "ksscc": 1.20*random_normal_number(),
+                                "Kpump": 0.5030,#heterogenost povzroča nestabilnost
+                                "kryr": 16.04*random_normal_number(),
+                                "kip3r3": 155.8*random_normal_number(),
+                                "kdeg": 1.25*random_normal_number()
+                            }
                            ))
-    if MP.cell_heterogeneity:
-        cell_heterogeneity(cells[i])
+
+# for cell in cells:
+#     print(getattr(cell, "ksscc"))
 
 
 # Actual simulation

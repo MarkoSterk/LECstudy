@@ -25,7 +25,7 @@ class CellModel(ModelParameters):
     k_stretch=0.12 #0.08105
     kf=0.20 #0.1382
     kb=0.025 #0.04027
-    ksscc=1.15*1.025 #maksimal current through stretch sensitive channels
+    #ksscc=1.15*1.025 #maksimal current through stretch sensitive channels
 
     ##Stretch induced phosphorylation
     Aalpha4=1.15*0.0282
@@ -36,7 +36,7 @@ class CellModel(ModelParameters):
     Dip3=913.9 #difusion constant for IP3 through GJ
 
     factor_diff=Dca/Dip3
-    Cgjip3=0.025  #apparent constant for IP3 difusion
+    Cgjip3=10.0*0.025#0.025  #apparent constant for IP3 difusion
     Cgjca=factor_diff*Cgjip3 #apparent constant for Ca2+ difusion
 
     #Leakage current from ER and cytoplasm
@@ -44,13 +44,13 @@ class CellModel(ModelParameters):
 
     #SARCO/Endoplasmic reticulum ATPase (SERCA) and plasma membrane Ca ATPase (PMCA) flux
     Vpump=5.341
-    Kpump=0.5030
+    #Kpump=0.5030
 
     #Rynodine receptor dynamics
     Ka=0.37224
     Kb=0.63601
     Kc=0.05714
-    kryr=16.04 #maximal current through rynodine receptor sensitive channels
+    #kryr=16.04 #maximal current through rynodine receptor sensitive channels
 
     ###IP3R3 receptor dynamics
     alpha1=40.0
@@ -60,7 +60,7 @@ class CellModel(ModelParameters):
     k3=0.5
     k1m=0.88
     k5=0.02
-    kip3r3=155.8 #maximal current through IP3 sensitive channels
+    #kip3r3=155.8 #maximal current through IP3 sensitive channels
 
     #PIP2 and IP3 dynamics and P2Y2 receptor dynamics
     PIP2tot=50000.0
@@ -79,7 +79,7 @@ class CellModel(ModelParameters):
     alpha=0.00002781
     rr=0.015
     K3=0.4
-    kdeg=1.25 #degradation rate of IP3
+    #kdeg=1.25 #degradation rate of IP3
 
     Na=6.02252*10**23 #Avogadro's constant
 
@@ -88,6 +88,7 @@ class CellModel(ModelParameters):
     def __init__(self, cell_num: int,
                 volume: float,
                 dist_from_stimulation: float,
+                parameters: dict,
                 neighbours: list = None):
 
         self.cell_num = cell_num
@@ -96,6 +97,9 @@ class CellModel(ModelParameters):
 
         if neighbours:
             self.neighbours = neighbours
+
+        for key, value in parameters.items():
+            setattr(self, key, value)
 
         self.time_of_activation = None
         self.simulation_time = []

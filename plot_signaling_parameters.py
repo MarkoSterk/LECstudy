@@ -55,7 +55,7 @@ def plot_signaling_parameters(data: dict[np.ndarray], pos: np.ndarray, stim_cell
     fractions_stds = np.array([0 for elem in fractions_bins])
     amplitudes_stds = np.array([np.std(elem)/np.sqrt(len(elem)) for elem in amplitudes_bins])
     
-    xlim = [0.98*np.amin(distances_avgs), 1.02*np.amax(distances_avgs)]
+    xlim = [0.98*np.nanmin(distances_avgs), 1.02*np.nanmax(distances_avgs)]
     xlabel = 'Distance from stimulations (um)'
     plot_data = {
         'response_times': {
@@ -64,7 +64,7 @@ def plot_signaling_parameters(data: dict[np.ndarray], pos: np.ndarray, stim_cell
             'x': distances_avgs,
             'y': response_times_avgs,
             'yerr': response_times_stds,
-            'ylim': [0.98*np.amin(response_times_avgs), 1.02*np.amax(response_times_avgs)],
+            'ylim': [0.98*np.nanmin(response_times_avgs), 1.02*np.nanmax(response_times_avgs)],
             'xlim': xlim
         },
         'durations': {
@@ -73,7 +73,7 @@ def plot_signaling_parameters(data: dict[np.ndarray], pos: np.ndarray, stim_cell
             'x': distances_avgs,
             'y': durations_avgs,
             'yerr': durations_stds,
-            'ylim': [0.98*np.amin(durations_avgs), 1.02*np.amax(durations_avgs)],
+            'ylim': [0.98*np.nanmin(durations_avgs), 1.02*np.nanmax(durations_avgs)],
             'xlim': xlim
         },
         'fractions': {
@@ -91,7 +91,7 @@ def plot_signaling_parameters(data: dict[np.ndarray], pos: np.ndarray, stim_cell
             'x': distances_avgs,
             'y': amplitudes_avgs,
             'yerr': amplitudes_stds,
-            'ylim': [0.98*np.amin(amplitudes_avgs), 1.02*np.amax(amplitudes_avgs)],
+            'ylim': [0.98*np.nanmin(amplitudes_avgs), 1.02*np.nanmax(amplitudes_avgs)],
             'xlim': xlim
         }
     }
