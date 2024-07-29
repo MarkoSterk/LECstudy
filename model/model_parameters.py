@@ -8,7 +8,7 @@ class ModelParameters:
     """
     All model parameters
     """
-    capsule: int = 0
+    capsule: int = 3
     t: float = 0.0 #initial time
     dt: float = 0.01 #integration step
     tend: float = 150.0 #end time
