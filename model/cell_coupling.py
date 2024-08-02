@@ -68,9 +68,15 @@ def calculate_atp_coupling(cells: List[CellModel],
                     #Activated cells secrete the same amount of ATP
                     L0_j = cell_j.L0init
 
-                L_i += ((L0_j*10**6)/(cell_j.film_thickness*4.0*np.pi*cell_j.Datp*(time-cell_j.time_of_activation))) * \
+                L0_j = ((L0_j*10**6)/(cell_j.film_thickness*4.0*np.pi*cell_j.Datp*(time-cell_j.time_of_activation))) * \
                     np.e**(-(cell_distances[i, j]**2)/(4.0 *
                            cell_j.Datp*(time-cell_j.time_of_activation)))
+                
+                if(cell_j.apiraza_deg):
+                    char_time_atp_deg = (cell_j.apyrase_Km*np.log(3)+(2/3)*L0_j)/(cell_j.apyrase_Vmax)*60.0 #characteristic time of atp degradation in s
+                    L0_j = L0_j * np.e**(-((time-cell_j.time_of_activation)/(char_time_atp_deg)))
+                
+                L_i += L0_j
         all_cells_atp.append(L_i)
     return all_cells_atp
 

@@ -36,7 +36,7 @@ class CellModel(ModelParameters):
     Dip3=913.9 #difusion constant for IP3 through GJ
 
     factor_diff=Dca/Dip3
-    Cgjip3=10.0*0.025#0.025  #apparent constant for IP3 difusion
+    Cgjip3=0.0*0.025#0.025  #apparent constant for IP3 difusion
     Cgjca=factor_diff*Cgjip3 #apparent constant for Ca2+ difusion
 
     #Leakage current from ER and cytoplasm
@@ -143,7 +143,7 @@ class CellModel(ModelParameters):
         points_for_slope = int(self.time_interval_for_slope/time_step)
         if len(self.calcium_time_series)>points_for_slope+5 and not self.time_of_activation:
             slope = (self.calcium_time_series[-1] - self.calcium_time_series[-points_for_slope])/(points_for_slope*time_step)
-            if slope>self.slopeTh:
+            if slope>self.slopeTh and self.calcium_time_series[-1]>self.Cth_act:
                 self.time_of_activation = time - int(points_for_slope/2)*time_step
 
         dstretch = None

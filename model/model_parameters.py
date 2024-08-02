@@ -56,19 +56,23 @@ class ModelParameters:
     point:
     Only stimulated cell secretes ATP. L0_stim = L0init
     """
-    diffusion_mode: str = 'point'
+    diffusion_mode: str = 'partially-regenerative'
     Datp: float = 236.0 #difusion constant for ATP (um^2/s)
     film_thickness: float = 100.0 ##thickness of thin film for diffusion (um)
-    L0init: float = 1.0 #concentration of secreted ATP by stimulated cell (fmol)
+    L0init: float = 0.2 #1.0 #concentration of secreted ATP by stimulated cell (fmol)
     char_dist: float = 30.0 #characteristic distance of ATP release decay
+    apiraza_deg: bool = True #True for apiraza, False no apiraza
+    apyrase_Km: float = 25.27 #uM
+    apyrase_Vmax: float = 1.09 #umol (pi)/min
 
     # Threshold for cellular activity
     Cth = 0.15 ##threshold amplitude of normalized calcium
-    time_interval_for_slope = 2.0 # seconds
+    time_interval_for_slope = 4.0 # seconds
     slopeTh = 0.01 ## uM/s
+    Cth_act = 0.125 + 0.0
 
     # White noise amplitude for calcium and ip3
-    ca_noise_amp = 0.001
+    ca_noise_amp = 0.0001
     ip3_noise_amp = 0.001
 
     @staticmethod

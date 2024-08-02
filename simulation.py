@@ -18,7 +18,7 @@ from model.cell_heterogeneity import cell_heterogeneity
 from helper_functions.get_time_series import get_time_series
 
 from plot_activation_sequence import plot_activation_sequence
-from plot_time_series import plot_time_series
+from plot_time_series import plot_time_series, plot_all_ts_and_binarized_ts
 from plot_movie_frames import plot_movie_frames
 from plot_signaling_parameters import plot_signaling_parameters
 
@@ -111,3 +111,4 @@ for key, item in results.items():
 plot_activation_sequence()
 plot_signaling_parameters(results, pos, stimulated_cell)
 plot_time_series()
+plot_all_ts_and_binarized_ts()
