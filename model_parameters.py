@@ -169,14 +169,14 @@ class ModelParameters:
             if simulation_step%100 == 0:
                 print(simulation_time)
             calcium_coupling, ip3_coupling = self.calculate_ca_ip3_coupling(cells)
-            atp_coupling = self.calculate_atp_coupling(
-                cells,
-                cell_distances,
-                self.stimulated_cell,
-                simulation_time,
-                mode=self.diffusion_mode
-            )
-            #atp_coupling = [0 for i in range(len(cells))]
+            #atp_coupling = self.calculate_atp_coupling(
+            #                                            cells,
+            #                                            cell_distances,
+            #                                            self.stimulated_cell,
+            #                                            simulation_time,
+            #                                            mode=self.diffusion_mode
+            #                                        )
+            atp_coupling = [0 for i in range(len(cells))]
             for i, cell in enumerate(cells):
                 cell.run_model_step(simulation_step,
                                     simulation_time,
@@ -236,7 +236,7 @@ class ModelParameters:
             L_i = 0.0
             for j, cell_j in enumerate(cells):
                 if cell_j.time_of_activation:
-                    L0_j = 0.0 ##decoupled
+                    L0_j = 0.0
                     if mode == 'point' and j == stimulated_cell:
                         L0_j = cell_j.model.L0init
                     elif mode == 'partially-regenerative':
@@ -248,8 +248,7 @@ class ModelParameters:
                         L0_j = cell_j.model.L0init
 
                     L0_j = ((L0_j*10**6)/(cell_j.model.film_thickness*4.0*np.pi*cell_j.model.Datp*(time-cell_j.time_of_activation))) * \
-                        np.e**(-(cell_distances[i, j]**2)/(4.0 *
-                            cell_j.model.Datp*(time-cell_j.time_of_activation)))
+                        np.e**(-(cell_distances[i, j]**2)/(4.0 * cell_j.model.Datp*(time-cell_j.time_of_activation)))
                     
                     if(cell_j.model.apyrase_deg):
                         #char_time_atp_deg = (cell_j.apyrase_Km*np.log(3)+(2/3)*L0_j)/(cell_j.apyrase_Vmax)*60.0 #characteristic time of atp degradation in s

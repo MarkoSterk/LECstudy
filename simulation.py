@@ -9,15 +9,15 @@ from cell_model import CellModel
 
 #CHANGE MODEL PARAMETERS HERE
 model_parameters: dict = dict(
-    capsule=3,
+    capsule=2,
     tend = 150.0, #end time
     time_of_stimulation = 15.0, #time of stimulation
     stim_dur = 3.0, #stimulation duration
     initiator_cell_mode = "point",
     cell_height=8.0,
-    diffusion_mode = "partially-regenerative",
+    diffusion_mode = "decoupled",
     Cgjip3 = 0.05,
-    L0init = 0.2, #1.0 #concentration of secreted ATP by stimulated cell (fmol)
+    L0init = 0.5, #0.2 concentration of secreted ATP by stimulated cell (fmol)
     char_dist= 30.0, #characteristic distance of ATP release decrease
     apyrase_deg = True, #True for apiraza, False (default) no apiraza
     apyrase_char_time = 1.0, #s
