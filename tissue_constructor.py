@@ -26,10 +26,10 @@ from tissue_generator import create_cell_network
 #cell radius of 5 um (diameter = 10 um)
 #
 
-CAPSULE: int = 0 #capsule number
+CAPSULE: int = 9 #capsule number
 THRESHOLD_DIST: float = 6.0 #minimal distance between two points in the voronoi network
 REAL_INTERCELL_DIST: float = 8.0 #fine-tuning of cell valumes
-CROP: float = 40.0 #no default - number of final cells depends on this
+CROP: float = 65.0 #no default - number of final cells depends on this
 NUMBER_OF_CELLS: int = 700 #default 700
 MIN_XY: float = 0.0 #default 0.0
 MAX_XY: float = 200 #default 200.0
