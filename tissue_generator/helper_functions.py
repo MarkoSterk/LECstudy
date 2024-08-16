@@ -1,6 +1,8 @@
 """
 Helper functions for tissue constructor
 """
+import os
+import pickle
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -14,6 +16,15 @@ class TriesOverflowException(Exception):
                     Try decreasing the threshold distance or lower cell number or try again.
                     Because of the randomness of the process it sometimes can't complete.
                     {append_msg}""")
+
+class DataNotFoundException(Exception):
+    """
+    Exception for not found capsule data
+    """
+    def __init__(self, capsule: int, path: str):
+        super().__init__(f"""Could not find data for capsule {capsule}.
+                    Please make sure data exists in path: {path}.
+                    """)
 
 def random_xy_coord(min_coord: float, max_coord: float):
     """
@@ -30,6 +41,7 @@ def generate_random_coordinates(n: int, r_th: float,
     Generates random coordinates for points in voronoi network
     with a set minimal threshold distance between points.
     """
+    #pylint: disable-next=C0103
     TRIES_LIMIT: int = 3000
     pos: list[tuple[float]] = []
     x0, y0 = random_xy_coord(min_coord, max_coord)
@@ -51,7 +63,8 @@ def generate_random_coordinates(n: int, r_th: float,
             if tries > TRIES_LIMIT:
                 exit_builder = True
         if exit_builder:
-            print(f"""WARNING: exited random coordinates generator prematurely because of tries ({TRIES_LIMIT}) overflow.
+            print(f"""WARNING: exited random coordinates generator prematurely
+                  because of tries ({TRIES_LIMIT}) overflow.
                   Finished with {counter}/{n} cells.""")
             break
         pos.append((x, y))
@@ -79,17 +92,19 @@ def distances_between_neighbours(cell_data: dict[str, list[int]|float|np.ndarray
                 intercell_distances.append(dist)
     return np.array(intercell_distances)
 
-def create_bin_conn_matrix(cell_data: dict[str, list[int]|float|np.ndarray]) -> np.ndarray:
+def create_bin_conn_matrix(cell_data: dict[str, list[int]|float|np.ndarray]) -> tuple[np.ndarray]:
     """
     Creates 2D matrix of binarized intercellular connections
     """
     cell_num: int = len(cell_data)
     matrix: np.ndarray = np.zeros((cell_num, cell_num), int)
+    weights: np.ndarray = np.zeros((cell_num, cell_num), float)
     for cell_i, data_i in cell_data.items():
         for cell_j in cell_data:
             if cell_j in data_i["neighbours"]:
+                weights[cell_i, cell_j] = data_i["neighbours"][cell_j]
                 matrix[cell_i, cell_j] = 1
-    return matrix
+    return matrix, weights
 
 if __name__ == "__main__":
     NUMBER_OF_CELLS: int = 400
@@ -106,3 +121,17 @@ if __name__ == "__main__":
         print(f"WARNING: minimal distance between cells is smaller then the set {THRESHOLD_DIST=}")
     else:
         print("SUCCESS: cell coordinates generated successfully with given parameters")
+
+def load_capsule_data(capsule: int,
+                      base_path: str = "capsule_data"
+                      ) -> dict[str, list[int]|float|np.ndarray]:
+    """
+    Loads .pkl file with capsule data
+    """
+    data_path: str = f"{base_path}/capsule_{capsule}/capsule_data.pkl"
+    if not os.path.exists(data_path):
+        raise DataNotFoundException(capsule, data_path)
+
+    with open(data_path, 'rb') as file:
+        data = pickle.load(file)
+    return data

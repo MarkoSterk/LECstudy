@@ -6,10 +6,11 @@ import numpy as np
 from scipy.spatial import distance
 from model_parameters import ModelParameters as MP
 from cell_model import CellModel
+from tissue_generator import load_capsule_data
 
 #CHANGE MODEL PARAMETERS HERE
 model_parameters: dict = dict(
-    capsule=2,
+    capsule=0,
     tend = 150.0, #end time
     time_of_stimulation = 15.0, #time of stimulation
     stim_dur = 3.0, #stimulation duration
@@ -33,10 +34,12 @@ model_parameters: dict = dict(
 
 model: MP = MP(model_parameters)
 
-pos = np.loadtxt(f"cell_data/capsule_{model.capsule}/cm_cells.txt")
-weights = np.loadtxt(f"cell_data/capsule_{model.capsule}/cmat_weight.txt")*model.cell_height
-per_area_vol = np.loadtxt(f"cell_data/capsule_{model.capsule}/perimeters_area_volume.txt")
-cmat = np.loadtxt(f"cell_data/capsule_{model.capsule}/cmat.txt")
+capsule_data = load_capsule_data(model.capsule)
+
+pos = np.array([v["cm_xy"] for v in capsule_data["cells"].values()])
+weights = capsule_data["weights"]*capsule_data["cell_height"]
+volumes = np.array([v["volume"] for v in capsule_data["cells"].values()])
+cmat = capsule_data["bin_conn_mat"]
 cell_distances = distance.cdist(pos, pos, 'euclidean')
 
 cell_num = len(pos)  # number of all cells
@@ -53,7 +56,7 @@ cells: list[CellModel] = CellModel.generate_cells(model,
                                                   stimulated_cell,
                                                   init_cells,
                                                   pos,
-                                                  per_area_vol,
+                                                  volumes,
                                                   cell_distances,
                                                   cmat,
                                                   weights,
@@ -67,3 +70,6 @@ act_times = MP.extracts_activation_times(cells)
 model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times)
 model.plot_activation_sequence(model)
 model.plot_time_series(ca_ts)
+
+model_parameters["stimulated_cell"] = stimulated_cell
+model.save_model_parameters(model_parameters)

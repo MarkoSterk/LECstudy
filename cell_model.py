@@ -197,7 +197,7 @@ class CellModel(CellParameters):
 
     @classmethod
     def generate_cells(cls, model, stimulated_cell: int, init_cells: list[int],
-                       pos: np.ndarray, per_area_vol: np.ndarray,
+                       pos: np.ndarray, volumes: np.ndarray,
                        dist_from_stimulation: np.ndarray, cmat: np.ndarray,
                        weights: np.ndarray, noise: bool = False) -> list:
         """
@@ -205,7 +205,7 @@ class CellModel(CellParameters):
         """
         cells = []
         for i in range(len(pos)):
-            volume = per_area_vol[i, 2]*10**(-18) #conversions
+            volume = volumes[i]*10**(-18) #conversions
             neighbours = CellModel.get_neighbours(i, cmat, weights)
             cells.append(cls(
                 model, CellModel.generate_cell_parameters(noise),

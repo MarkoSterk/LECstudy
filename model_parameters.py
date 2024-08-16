@@ -3,9 +3,11 @@ All relevant model parameters
 """
 # pylint: disable=W0719
 import os
+import json
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
+from tissue_generator import load_capsule_data
 
 class ModelParameters:
     """
@@ -330,9 +332,9 @@ class ModelParameters:
         """
         Plots activation sequence of cells
         """
+        capsule_data = load_capsule_data(model.capsule)
         stimulated_cell = model.stimulated_cell
-        pos = np.loadtxt(f'cell_data/capsule_{model.capsule}/cm_cells.txt')
-        edgepoints = np.loadtxt(f'cell_data/capsule_{model.capsule}/cell_edge_points_x_y_cellnum.txt')
+        pos = np.array([v["cm_xy"] for v in capsule_data["cells"].values()])
         act_times = np.loadtxt(f'results/capsule_{model.capsule}/act_times.txt')
         cell_num = len(pos)
 
@@ -347,26 +349,34 @@ class ModelParameters:
                 tru_col_map.append(plt.cm.jet_r(float(act_times[i]-vmin)/float(vmax-vmin)))
 
         dx=10.0
-        dy=10.0
-        x0=10.0
-        y0=10.0
+
+        minx = np.amin(pos[:,0]) - 6
+        miny = np.amin(pos[:,1]) - 6
 
         fig=plt.figure(figsize=(2.0*5, 2.0*5))
         ax=fig.add_subplot(111)
-        for i in range(cell_num):
-            data=edgepoints[np.where(edgepoints[:,2]==i)][:,:2]
-            polygon=Polygon(list(data), fc=tru_col_map[i], ec='black', zorder=0)
-            ax.add_artist(polygon)
+        for i, vor_region in capsule_data["cells"].items():
+            polygon = Polygon(vor_region["vertices_coord"], closed=True,
+                              fc=tru_col_map[i], ec='black', zorder=0)
+            ax.add_patch(polygon)
+        ax.scatter(pos[:,0], pos[:,1], s=12, c="black")
         ax.scatter(pos[:,0], pos[:,1], s=12, c='black', zorder=10)
         ax.scatter(pos[stimulated_cell,0], pos[stimulated_cell,1], s=30, color='black', marker='x')
 
-        ax.plot([x0,x0+dx], [y0, y0], linewidth=2, color='black')
-        ax.text(x0, y0-10, '10 um', fontsize=8)
-        ax.plot([x0, x0], [y0,y0+dy], linewidth=2, color='black')
-        ax.text(x0-10, y0, '10 um', fontsize=8, rotation='vertical')
+        ax.plot([minx,minx+dx], [miny, miny], linewidth=3, color='black')
+        ax.text(minx+1, miny-4, r'10 $\mathrm{\mu}$m', fontsize=14)
 
         ax.set_axis_off()
         fig.savefig(
             f"results/capsule_{model.capsule}/activation_sequence.png",
             dpi=600, bbox_inches='tight')
         plt.close(fig)
+    
+    def save_model_parameters(self, model_parameters: dict):
+        """
+        Saves provided model parameters as JSON file
+        to results folder
+        """
+        with open(f"results/capsule_{self.capsule}/model_parameters.json",
+                  'w', encoding="utf-8") as json_file:
+            json.dump(model_parameters, json_file, indent=4)

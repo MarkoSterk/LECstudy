@@ -178,7 +178,7 @@ def create_cell_network(capsule: int, threshold_dist: float, real_intercellular_
     Creates network and saves it to results folder
     returns model
     """
-    results_path: str = f"cell_data/capsule_{capsule}"
+    results_path: str = f"capsule_data/capsule_{capsule}"
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -195,8 +195,13 @@ def create_cell_network(capsule: int, threshold_dist: float, real_intercellular_
 
     model = crop_voronoi_network(vor.regions, vertices, min_xy, max_xy,
                                            cell_height=real_intercellular_dist, crop=crop)
-    model["bin_conn_mat"] = create_bin_conn_matrix(model["cells"])
-    with open(f"{results_path}/model_data.pkl", "wb") as file:
+    bin_conn, weights = create_bin_conn_matrix(model["cells"])
+    model["bin_conn_mat"] = bin_conn
+    model["weights"] = weights
+    model["cell_height"] = real_intercellular_dist
+    model["crop"] = crop
+    model["threshold_dist"] = threshold_dist
+    with open(f"{results_path}/capsule_data.pkl", "wb") as file:
         pickle.dump(model, file)
 
     cropped_regions = model["cells"]
