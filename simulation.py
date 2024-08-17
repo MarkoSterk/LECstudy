@@ -10,7 +10,7 @@ from tissue_generator import load_capsule_data
 
 #CHANGE MODEL PARAMETERS HERE
 model_parameters: dict = dict(
-    capsule=0,
+    capsule=9,
     tend = 150.0, #end time
     time_of_stimulation = 15.0, #time of stimulation
     stim_dur = 3.0, #stimulation duration
@@ -42,7 +42,6 @@ volumes = np.array([v["volume"] for v in capsule_data["cells"].values()])
 cmat = capsule_data["bin_conn_mat"]
 cell_distances = distance.cdist(pos, pos, 'euclidean')
 
-cell_num = len(pos)  # number of all cells
 center_x = np.amin(pos[:,0]) + (np.amax(pos[:,0])-np.amin(pos[:,0]))/2.0
 center_y = np.amin(pos[:,1]) + (np.amax(pos[:,1])-np.amin(pos[:,1]))/2.0
 stimulated_cell = MP.find_stimulated_cell(pos, (center_x, center_y))
@@ -51,7 +50,7 @@ init_cells = model.get_initiatior_cells(stimulated_cell,
                                   cmat,
                                   mode=model.initiator_cell_mode
                                   )
-print(f"Initiator cells: {init_cells}")
+print(f"Stimulated cells: {init_cells}")
 cells: list[CellModel] = CellModel.generate_cells(model,
                                                   stimulated_cell,
                                                   init_cells,
@@ -64,12 +63,16 @@ cells: list[CellModel] = CellModel.generate_cells(model,
 
 time: list[int] = model.run_simulation(cells, cell_distances)
 
-ca_ts, ca_bin_ts, ip3_ts, atp_ts = MP.extract_time_series_data(cells)
+ca_ts, ca_bin_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts = MP.extract_time_series_data(cells)
 act_times = MP.extracts_activation_times(cells)
 
-model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times)
+model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times, jgjca_ts, jgjip3_ts)
 model.plot_activation_sequence(model)
 model.plot_time_series(ca_ts)
 
+stim_cell_neighbours = [int(neigh) for neigh in np.nonzero(cmat[:, stimulated_cell])[0]]
+
 model_parameters["stimulated_cell"] = stimulated_cell
+model_parameters["stim_cell_neighbours"] = stim_cell_neighbours
 model.save_model_parameters(model_parameters)
+model.plot_gj_currents(stimulated_cell, stim_cell_neighbours, jgjca_ts, jgjip3_ts)

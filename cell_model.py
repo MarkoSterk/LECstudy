@@ -56,11 +56,13 @@ class CellModel(CellParameters):
         self.time_of_activation = None
         self.activation_amp = None
         self.index_of_activation = None
-        self.simulation_time = []
-        self.calcium_time_series = []
-        self.ca_bin_time_series = []
-        self.ip3_time_series = []
-        self.atp_time_series = []
+        self.simulation_time: list[float] = []
+        self.calcium_time_series: list[float] = []
+        self.ca_bin_time_series: list[float] = []
+        self.ip3_time_series: list[float] = []
+        self.atp_time_series: list[float] = []
+        self.jgjca_time_series: list[float] = []
+        self.jgjip3_time_series: list[float] = []
 
     def __repr__(self) -> str:
         """
@@ -72,7 +74,7 @@ class CellModel(CellParameters):
         """
         Runs next model step
         """
-        self.store_data(step, time, L)
+        self.store_data(step, time, L, jgjca, jgjip3)
         self.calculate_activation_time(time)
 
         dstretch: float = self.calculate_strech(time)
@@ -185,7 +187,7 @@ class CellModel(CellParameters):
         self.P += differentials["dP"]
         self.PIP += differentials["dPIP"]
 
-    def store_data(self, step: int, time: float, L: int):
+    def store_data(self, step: int, time: float, L: int, jgjca: float, jgjip3: float):
         """
         Stores current data to designated lists
         """
@@ -194,6 +196,8 @@ class CellModel(CellParameters):
             self.calcium_time_series.append(self.C)
             self.ip3_time_series.append(self.P)
             self.atp_time_series.append(L)
+            self.jgjca_time_series.append(jgjca)
+            self.jgjip3_time_series.append(jgjip3)
 
     @classmethod
     def generate_cells(cls, model, stimulated_cell: int, init_cells: list[int],

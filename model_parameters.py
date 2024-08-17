@@ -129,15 +129,19 @@ class ModelParameters:
             init_cells.append(int(i))
         return init_cells
     
-    def save_ts_data(self, ca_ts: np.ndarray, ca_bin_ts: np.ndarray, ip3_ts: np.ndarray, atp_ts: np.ndarray, act_times: np.ndarray):
+    def save_ts_data(self, ca_ts: np.ndarray, ca_bin_ts: np.ndarray, ip3_ts: np.ndarray,
+                     atp_ts: np.ndarray, act_times: np.ndarray,
+                     jgjca_ts: np.ndarray, jgjip3_ts: np.ndarray):
         """
         Saves all data to results/capsule_{<INT>}
         """
-        np.savetxt(f"{self.results_path}/ca_ts.txt", ca_ts)
+        np.savetxt(f"{self.results_path}/ca_ts.txt", ca_ts, fmt="%.4lf")
         np.savetxt(f"{self.results_path}/ca_bin_ts.txt", ca_bin_ts, fmt="%d")
-        np.savetxt(f"{self.results_path}/ip3_ts.txt", ip3_ts)
-        np.savetxt(f"{self.results_path}/atp_ts.txt", atp_ts)
-        np.savetxt(f"{self.results_path}/act_times.txt", act_times)
+        np.savetxt(f"{self.results_path}/ip3_ts.txt", ip3_ts, fmt="%.4lf")
+        np.savetxt(f"{self.results_path}/atp_ts.txt", atp_ts, fmt="%.4lf")
+        np.savetxt(f"{self.results_path}/act_times.txt", act_times, fmt="%.4lf")
+        np.savetxt(f"{self.results_path}/jgjca_ts.txt", jgjca_ts, fmt="%.4lf")
+        np.savetxt(f"{self.results_path}/jgjip3_ts.txt", jgjip3_ts, fmt="%.4lf")
     
     def plot_time_series(self, time_series: np.ndarray, ylabel: str = "Calcium signal", xlabel: str = "time (s)"):
         """
@@ -275,20 +279,26 @@ class ModelParameters:
         ca_bin_ts: np.ndarray = np.zeros((ts_length, cell_num+1), int)
         ip3_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
         atp_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
+        jgjca_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
+        jgjip3_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
 
 
         ca_ts[:,0] = np.array(time)
         ip3_ts[:,0] = np.array(time)
         atp_ts[:,0] = np.array(time)
+        jgjca_ts[:,0] = np.array(time)
+        jgjip3_ts[:,0] = np.array(time)
 
         for i, cell in enumerate(cells):
             ca_ts[:, i+1] = np.array(cell.calcium_time_series)
             ip3_ts[:, i+1] = np.array(cell.ip3_time_series)
             atp_ts[:, i+1] = np.array(cell.atp_time_series)
+            jgjca_ts[:, i+1] = np.array(cell.jgjca_time_series)
+            jgjip3_ts[:, i+1] = np.array(cell.jgjip3_time_series)
         
         ca_bin_ts = ModelParameters.extract_bin_signals(cells, ca_ts)
 
-        return ca_ts, ca_bin_ts, ip3_ts, atp_ts
+        return ca_ts, ca_bin_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts
     
     @staticmethod
     def extract_bin_signals(cells: list, ca_ts: np.ndarray):
@@ -370,6 +380,34 @@ class ModelParameters:
         fig.savefig(
             f"results/capsule_{model.capsule}/activation_sequence.png",
             dpi=600, bbox_inches='tight')
+        plt.close(fig)
+    
+    def plot_gj_currents(self, stimulated_cell: int, 
+                         stim_cell_neighbours: list[int],
+                         jgjca_ts: np.ndarray, jgjip3_ts: np.ndarray):
+        """
+        Draws and saved GJ currents for stimulated cell and their neighbours.
+        """
+        fig = plt.figure(figsize=(10, 5))
+        ax1 = fig.add_subplot(1,2,1)
+        ax2 = fig.add_subplot(1,2,2)
+        for cell in [stimulated_cell, *stim_cell_neighbours]:
+            ax1.plot(jgjca_ts[:,0], jgjca_ts[:,cell], linewidth=1.5, label=f"{cell=}")
+            ax2.plot(jgjip3_ts[:,0], jgjip3_ts[:,cell], linewidth=1.5, label=f"{cell=}")
+        ax1.legend(loc="upper right")
+        ax2.legend(loc="upper right")
+        ax1.set_xlabel("time (s)")
+        ax2.set_xlabel("time (s)")
+
+        ax1.set_ylabel("GJ Ca2+ current")
+        ax2.set_ylabel("GJ IP3 current")
+
+        ax1.set_xlim(0, 50.0)
+        ax2.set_xlim(0, 50.0)
+
+        plt.subplots_adjust(wspace=0.2, hspace=0.2)
+        fig.savefig(f"results/capsule_{self.capsule}/GJ_currents.png", dpi=600,
+                                        bbox_inches='tight', pad_inches=0.01)
         plt.close(fig)
     
     def save_model_parameters(self, model_parameters: dict):
