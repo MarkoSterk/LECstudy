@@ -7,6 +7,7 @@ import json
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
+from sklearn.cluster import KMeans
 from tissue_generator import load_capsule_data
 
 class ModelParameters:
@@ -335,6 +336,7 @@ class ModelParameters:
             if(cell.time_of_activation):
                 act_times[i] = cell.time_of_activation
 
+        #act_times = act_times - np.nanmin(act_times)
         return act_times
     
     @staticmethod
@@ -418,3 +420,116 @@ class ModelParameters:
         with open(f"results/capsule_{self.capsule}/model_parameters.json",
                   'w', encoding="utf-8") as json_file:
             json.dump(model_parameters, json_file, indent=4)
+    
+    def calculate_activity_params(self, ca_ts: np.ndarray, act_times: np.ndarray) -> tuple[np.ndarray]:
+        """
+        Calculates cell parameters: signal duration, signal amplitude and response time
+        """
+        sampling: int = self.sampling
+        act_frames: list[int] = [int(act_time*sampling) for act_time in act_times]
+        max_amps_indx: list[int] = [np.argmax(ca_ts[act_frame:, i]) + act_frame for i, act_frame in enumerate(act_frames)]
+        start_amps: list[float] = [ca_ts[act_frame, i] for i, act_frame in enumerate(act_frames)]
+        max_amps: list[float] = [ca_ts[max_indx, i] for i, max_indx in enumerate(max_amps_indx)]
+        deact_indx: list[int] = [np.where(ca_ts[max_amp:, i] <= (max_amps[i]+start_amps[i])/2.0)[0] for i, max_amp in enumerate(max_amps_indx)]
+        deact_indx: list[int] = [indx[0]+max_amp if len(indx) > 0 else len(ca_ts)-1 for indx, max_amp in zip(deact_indx, max_amps_indx)]
+
+        sig_durs: list[float] = [(end_frame - start_frame)/sampling for start_frame, end_frame in zip(act_frames, deact_indx)]
+        response_times: np.ndarray = act_times - np.nanmin(act_times)
+
+        return np.array(sig_durs), response_times, np.array(max_amps)
+
+    def save_activity_params(self, durations: np.ndarray,
+                             resp_times: np.ndarray, max_amps: np.ndarray,
+                             fractions_act_cells: np.ndarray):
+        """
+        Saves activity params
+        """
+        np.savetxt(f"results/capsule_{self.capsule}/signal_durations.txt", durations, fmt="%.4lf")
+        np.savetxt(f"results/capsule_{self.capsule}/response_times.txt", resp_times, fmt="%.4lf")
+        np.savetxt(f"results/capsule_{self.capsule}/max_amplitudes.txt", max_amps, fmt="%.4lf")
+        np.savetxt(f"results/capsule_{self.capsule}/fraction_of_active_cells.txt",
+                   fractions_act_cells, fmt="%.2lf")
+
+    def cluster_cells(self, pos: np.ndarray, bins: int) -> tuple[dict[list[int]], list[float]]:
+        """
+        Clusters cells into groups based on distance from stimulated cell
+        """
+        distances = np.sqrt(np.sum((pos - pos[self.stimulated_cell])**2, axis=1))
+        sorted_dist: np.ndarray = np.argsort(distances)
+        elements_in_bin: int = int(len(pos)/bins)
+        groups: dict[list[int]] = {}
+        for current_bin in range(bins):
+            group_start: int = int(current_bin*elements_in_bin)
+            group_end: int = group_start + elements_in_bin
+            groups[current_bin] = list(sorted_dist[group_start:group_end+1])
+
+        group_distances: list[float] = [np.average(distances[members])
+                                        for members in groups.values()]
+        return groups, group_distances
+
+    def calculate_bin_avg_and_stderr(self, data: np.ndarray, groups: dict[list[int]]) -> np.ndarray:
+        """
+        Calculates average value and stderr for each group of cells
+        """
+        avg_stderr: np.ndarray = np.zeros((len(groups), 2), float)
+        for group, members in groups.items():
+            avg_value: float = np.nanmean(data[members])
+            std_err: float = np.nanstd(data[members])/np.sqrt(len(members))
+            avg_stderr[group, 0] = avg_value
+            avg_stderr[group, 1] = std_err
+        return avg_stderr
+
+    def get_fraction_of_act_cells(self, cell_groups: dict[list[int]],
+                                  resp_times: np.ndarray) -> list[float]:
+        """
+        Calculates number of active cells for each group
+        """
+        fractions: list[float] = []
+        for _, members in cell_groups.items():
+            fraction: float = len(np.where(resp_times[members] != np.nan)[0])/len(members)
+            fractions.append(fraction)
+        return fractions
+
+    def plot_errorbars(self, ax, x: list[int], data: np.ndarray,
+                       ylabel, xlabel=r"Distance from stimulation ($\mathrm{\mu}$m)"):
+        """
+        Adds errorbar plot to axes object
+        """
+        ax.errorbar(x, data[:,0], yerr=data[:,1], fmt='-o',
+                    capsize=5, capthick=2, elinewidth=2, c='black')
+        ax.set_ylabel(ylabel)
+        ax.set_xlim(0.95*np.amin(x), 1.02*np.amax(x))
+        ax.set_xlabel(xlabel)
+
+        return ax
+
+    def plot_activity_params(self, durations: np.ndarray, resp_times: np.ndarray,
+                             amps: np.ndarray, pos: np.ndarray, bins: int = 5):
+        """
+        Plots all cell activity params
+        """
+        cell_groups: dict[list[int]]
+        group_distances: list[float]
+        cell_groups, group_distances = self.cluster_cells(pos, bins)
+        clustered_durations: np.ndarray = self.calculate_bin_avg_and_stderr(durations, cell_groups)
+        clustered_resp_times: np.ndarray = self.calculate_bin_avg_and_stderr(resp_times,
+                                                                             cell_groups)
+        clustered_amps: np.ndarray = self.calculate_bin_avg_and_stderr(amps, cell_groups)
+        fraction_act_cells: list[float] = self.get_fraction_of_act_cells(cell_groups, resp_times)
+        fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+        axes[0,1] = self.plot_errorbars(axes[0,1], group_distances, clustered_durations,
+                                        "Signal duration (s)")
+        axes[0,0] = self.plot_errorbars(axes[0,0], group_distances, clustered_resp_times,
+                                        "Response time (s)")
+        axes[1,0].plot(group_distances, fraction_act_cells, c='black', linewidth=2.0)
+        axes[1,0].set_xlabel(r"Distance from stimulation ($\mathrm{\mu}$m)")
+        axes[1,0].set_ylabel("Fraction of active cells")
+        axes[1,0].set_xlim(0.95*np.amin(group_distances), 1.02*np.amax(group_distances))
+        axes[1,0].set_ylim(0,1.02)
+        axes[1,1] = self.plot_errorbars(axes[1,1], group_distances, clustered_amps,
+                                        "Signal amplitude")
+        fig.subplots_adjust(wspace=0.2, hspace=0.2)
+        fig.savefig(f"results/capsule_{self.capsule}/cell_activity_params.png",
+                    dpi=600, bbox_inches='tight', pad_inches=0.01)
+        plt.close(fig)
+        return fraction_act_cells

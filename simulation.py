@@ -68,7 +68,10 @@ act_times = MP.extracts_activation_times(cells)
 
 model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times, jgjca_ts, jgjip3_ts)
 model.plot_activation_sequence(model)
-model.plot_time_series(ca_ts)
+#model.plot_time_series(ca_ts)
+durations, resp_times, amps = model.calculate_activity_params(ca_ts[:,1:], act_times)
+fractions_act_cells = model.plot_activity_params(durations, resp_times, amps, pos, 5)
+model.save_activity_params(durations, resp_times, amps, fractions_act_cells)
 
 stim_cell_neighbours = [int(neigh) for neigh in np.nonzero(cmat[:, stimulated_cell])[0]]
 
