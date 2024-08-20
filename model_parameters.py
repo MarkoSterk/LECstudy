@@ -4,16 +4,35 @@ All relevant model parameters
 # pylint: disable=W0719
 import os
 import json
+from enum import Enum
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
-from sklearn.cluster import KMeans
 from tissue_generator import load_capsule_data
+
+
 
 class ModelParameters:
     """
     All model parameters
     """
+
+    class ATPMode(Enum):
+        """
+        Enum class for ATP deffusion modes
+        """
+        DECOUPLED = "decoupled"
+        POINT = "point"
+        PARTIALLY_REGENERATIVE = "partially-regenerative"
+        REGENERATIVE = "regenerative"
+
+    class INITMode(Enum):
+        """
+        Enum class for initiator modes
+        """
+        POINT = "point"
+        NEAREST = "nearest"
+    
     capsule: int = 3
     t: float = 0.0 #initial time
     dt: float = 0.01 #integration step
@@ -183,7 +202,7 @@ class ModelParameters:
                                                         simulation_time,
                                                         mode=self.diffusion_mode
                                                     )
-            atp_coupling = [0 for i in range(len(cells))]
+            #atp_coupling = [0 for i in range(len(cells))]
             for i, cell in enumerate(cells):
                 cell.run_model_step(simulation_step,
                                     simulation_time,
@@ -426,14 +445,14 @@ class ModelParameters:
         Calculates cell parameters: signal duration, signal amplitude and response time
         """
         sampling: int = self.sampling
-        act_frames: list[int] = [int(act_time*sampling) for act_time in act_times]
-        max_amps_indx: list[int] = [np.argmax(ca_ts[act_frame:, i]) + act_frame for i, act_frame in enumerate(act_frames)]
-        start_amps: list[float] = [ca_ts[act_frame, i] for i, act_frame in enumerate(act_frames)]
-        max_amps: list[float] = [ca_ts[max_indx, i] for i, max_indx in enumerate(max_amps_indx)]
-        deact_indx: list[int] = [np.where(ca_ts[max_amp:, i] <= (max_amps[i]+start_amps[i])/2.0)[0] for i, max_amp in enumerate(max_amps_indx)]
-        deact_indx: list[int] = [indx[0]+max_amp if len(indx) > 0 else len(ca_ts)-1 for indx, max_amp in zip(deact_indx, max_amps_indx)]
+        act_frames: list[int] = [int(act_time*sampling) if not np.isnan(act_time) else np.nan for act_time in act_times]
+        max_amps_indx: list[int] = [np.argmax(ca_ts[act_frame:, i]) + act_frame if not np.isnan(act_frame) else np.nan for i, act_frame in enumerate(act_frames)]
+        start_amps: list[float] = [ca_ts[act_frame, i] if not np.isnan(act_frame) else np.nan for i, act_frame in enumerate(act_frames)]
+        max_amps: list[float] = [ca_ts[max_indx, i] if not np.isnan(max_indx) else np.nan for i, max_indx in enumerate(max_amps_indx)]
+        deact_indx: list[int] = [np.where(ca_ts[max_amp:, i] <= (max_amps[i]+start_amps[i])/2.0)[0] if not np.isnan(max_amp) else np.nan for i, max_amp in enumerate(max_amps_indx)]
+        deact_indx: list[int] = [indx[0]+max_amp if isinstance(indx, list) and len(indx) > 0 and not np.isnan(max_amp) else len(ca_ts)-1 for indx, max_amp in zip(deact_indx, max_amps_indx)]
 
-        sig_durs: list[float] = [(end_frame - start_frame)/sampling for start_frame, end_frame in zip(act_frames, deact_indx)]
+        sig_durs: list[float] = [(end_frame - start_frame)/sampling if not np.isnan(start_frame) and not np.isnan(end_frame) else np.nan for start_frame, end_frame in zip(act_frames, deact_indx)]
         response_times: np.ndarray = act_times - np.nanmin(act_times)
 
         return np.array(sig_durs), response_times, np.array(max_amps)
@@ -473,8 +492,8 @@ class ModelParameters:
         """
         avg_stderr: np.ndarray = np.zeros((len(groups), 2), float)
         for group, members in groups.items():
-            avg_value: float = np.nanmean(data[members])
-            std_err: float = np.nanstd(data[members])/np.sqrt(len(members))
+            avg_value: float = np.nanmean(data[members]) if len(data[members])>0 else np.nan
+            std_err: float = np.nanstd(data[members])/np.sqrt(len(members)) if len(data[members])>0 else np.nan
             avg_stderr[group, 0] = avg_value
             avg_stderr[group, 1] = std_err
         return avg_stderr
