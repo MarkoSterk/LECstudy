@@ -176,13 +176,13 @@ class ModelParameters:
             if simulation_step%100 == 0:
                 print(simulation_time)
             calcium_coupling, ip3_coupling = self.calculate_ca_ip3_coupling(cells)
-            #atp_coupling = self.calculate_atp_coupling(
-            #                                            cells,
-            #                                            cell_distances,
-            #                                            self.stimulated_cell,
-            #                                            simulation_time,
-            #                                            mode=self.diffusion_mode
-            #                                        )
+            atp_coupling = self.calculate_atp_coupling(
+                                                        cells,
+                                                        cell_distances,
+                                                        self.stimulated_cell,
+                                                        simulation_time,
+                                                        mode=self.diffusion_mode
+                                                    )
             atp_coupling = [0 for i in range(len(cells))]
             for i, cell in enumerate(cells):
                 cell.run_model_step(simulation_step,
