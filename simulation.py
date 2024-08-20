@@ -10,13 +10,13 @@ from tissue_generator import load_capsule_data
 
 #CHANGE MODEL PARAMETERS HERE
 model_parameters: dict = dict(
-    capsule=9,
+    capsule=0,
     tend = 150.0, #end time
     time_of_stimulation = 15.0, #time of stimulation
     stim_dur = 3.0, #stimulation duration
-    initiator_cell_mode = MP.INITMode.POINT.value,
+    initiator_cell_mode = MP.INITMode.POINT,
     cell_height=8.0,
-    diffusion_mode = MP.ATPMode.PARTIALLY_REGENERATIVE.value,
+    diffusion_mode = MP.ATPMode.DECOUPLED,
     Cgjip3 = 0.05,
     L0init = 0.2, #0.2 concentration of secreted ATP by stimulated cell (fmol)
     char_dist= 20.0, #characteristic distance of ATP release decrease

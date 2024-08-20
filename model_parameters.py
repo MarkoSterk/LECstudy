@@ -26,12 +26,36 @@ class ModelParameters:
         PARTIALLY_REGENERATIVE = "partially-regenerative"
         REGENERATIVE = "regenerative"
 
+        def __str__(self):
+            return self.value
+
+        def __repr__(self):
+            return str(self.value)
+
     class INITMode(Enum):
         """
         Enum class for initiator modes
         """
         POINT = "point"
         NEAREST = "nearest"
+
+        def __str__(self):
+            return self.value
+        
+        def __repr__(self):
+            return str(self.value)
+    
+    class EnumEncoder(json.JSONEncoder):
+        """
+        JSON Encoder for Enums
+        """
+        def default(self, obj):
+            """
+            Default encoder method
+            """
+            if isinstance(obj, Enum):
+                return obj.value
+            return super().default(obj)
     
     capsule: int = 3
     t: float = 0.0 #initial time
@@ -108,6 +132,11 @@ class ModelParameters:
         for key, value in model_parameters.items():
             setattr(self, key, value)
         
+        if "diffusion_mode" in model_parameters.keys():
+            self.diffusion_mode = model_parameters["diffusion_mode"].value
+        if "initiator_cell_mode" in model_parameters.keys():
+            self.initiator_cell_mode = model_parameters["initiator_cell_mode"].value
+
         self.check_diffusion_mode()
         self.check_initiator_cells_mode()
 
@@ -438,7 +467,7 @@ class ModelParameters:
         """
         with open(f"results/capsule_{self.capsule}/model_parameters.json",
                   'w', encoding="utf-8") as json_file:
-            json.dump(model_parameters, json_file, indent=4)
+            json.dump(model_parameters, json_file, indent=4, cls=self.EnumEncoder)
     
     def calculate_activity_params(self, ca_ts: np.ndarray, act_times: np.ndarray) -> tuple[np.ndarray]:
         """
