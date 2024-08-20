@@ -5,7 +5,7 @@ Model for single cell
 import random
 import numpy as np
 
-from cell_parameters import CellParameters
+from lec_model.cell_parameters import CellParameters
 
 class CellModel(CellParameters):
     """

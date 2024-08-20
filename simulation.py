@@ -4,8 +4,8 @@ Entry point for simulation
 # pylint: disable=E1101
 import numpy as np
 from scipy.spatial import distance
-from model_parameters import ModelParameters as MP
-from cell_model import CellModel
+from lec_model import ModelParameters as MP
+from lec_model import CellModel
 from tissue_generator import load_capsule_data
 
 #CHANGE MODEL PARAMETERS HERE
