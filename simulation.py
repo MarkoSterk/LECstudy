@@ -19,14 +19,14 @@ model_parameters: dict = dict(
     diffusion_mode = MP.ATPMode.DECOUPLED,
     Cgjip3 = 0.05,
     L0init = 0.2, #0.2 concentration of secreted ATP by stimulated cell (fmol)
-    char_dist= 20.0, #characteristic distance of ATP release decrease
-    apyrase_deg = True, #True for apiraza, False (default) no apiraza
+    char_dist= 30.0, #characteristic distance of ATP release decrease
+    apyrase_deg = False, #True for apiraza, False (default) no apiraza
     apyrase_char_time = 1.0, #s
     Cth = 0.15, ##threshold amplitude of normalized calcium
     time_interval_for_slope = 4.0, # seconds
-    slopeTh = 0.003,#0.01 ## uM/s
+    slopeTh = 0.002,#0.01 ## uM/s
     Cth_act = 0.125 + 0.025,
-    cell_heterogeneity = False,
+    cell_heterogeneity = True,
     ca_noise_amp = 0.00,
     ip3_noise_amp = 0.00
 )
@@ -61,15 +61,22 @@ cells: list[CellModel] = CellModel.generate_cells(model,
                                                   weights,
                                                   model.cell_heterogeneity)
 
-time: list[int] = model.run_simulation(cells, cell_distances)
+model.run_simulation(cells, cell_distances)
 
-ca_ts, ca_bin_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts = MP.extract_time_series_data(cells)
-act_times = MP.extracts_activation_times(cells)
+ca_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts = MP.extract_time_series_data(cells)
+act_times, act_amps, act_frames = MP.extracts_activation_times(cells)
 
+
+model.plot_activation_sequence(pos, act_times, capsule_data)
+
+durations, resp_times, amps, deact_frames = model.calculate_activity_params(ca_ts[:,1:],
+                                                              act_times,
+                                                              act_amps,
+                                                              act_frames,
+                                                              ca_ts[:,0].flatten())
+ca_bin_ts = model.extract_bin_signals(ca_ts, act_frames, deact_frames)
 model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times, jgjca_ts, jgjip3_ts)
-model.plot_activation_sequence(model)
-#model.plot_time_series(ca_ts)
-durations, resp_times, amps = model.calculate_activity_params(ca_ts[:,1:], act_times)
+model.plot_time_series(ca_ts, ca_bin_ts)
 fractions_act_cells = model.plot_activity_params(durations, resp_times, amps, pos, 5)
 model.save_activity_params(durations, resp_times, amps, fractions_act_cells)
 

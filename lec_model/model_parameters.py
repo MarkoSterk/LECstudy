@@ -192,7 +192,7 @@ class ModelParameters:
         np.savetxt(f"{self.results_path}/jgjca_ts.txt", jgjca_ts, fmt="%.4lf")
         np.savetxt(f"{self.results_path}/jgjip3_ts.txt", jgjip3_ts, fmt="%.4lf")
     
-    def plot_time_series(self, time_series: np.ndarray, ylabel: str = "Calcium signal", xlabel: str = "time (s)"):
+    def plot_time_series(self, time_series: np.ndarray, bin_time_series, ylabel: str = "Calcium signal", xlabel: str = "time (s)"):
         """
         Plots provided time series and saves them to the results/capsule_{INT}/time_series folder
         """
@@ -203,9 +203,11 @@ class ModelParameters:
         time: np.ndarray = time_series[:,0]
         cell_num: int = len(time_series[0]) - 1
         for i in range(cell_num):
+            max_v = np.max(time_series[:, i+1])
             fig = plt.figure(figsize=(6, 4))
             ax = fig.add_subplot(1,1,1)
             ax.plot(time, time_series[:, i+1], linewidth=1, c='black')
+            ax.plot(time, bin_time_series[:, i+1]*max_v, linewidth=1, c='red')
             ax.set_xlim(0, np.amax(time))
             ax.set_ylim(0.99*np.amin(time_series[:,i+1]), 1.01*np.amax(time_series[:,i+1]))
             ax.set_xlabel(xlabel)
@@ -325,7 +327,6 @@ class ModelParameters:
         cell_num: int = len(cells)
         time: list[float] = cells[0].simulation_time
         ca_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
-        ca_bin_ts: np.ndarray = np.zeros((ts_length, cell_num+1), int)
         ip3_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
         atp_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
         jgjca_ts: np.ndarray = np.zeros((ts_length, cell_num+1), float)
@@ -344,32 +345,23 @@ class ModelParameters:
             atp_ts[:, i+1] = np.array(cell.atp_time_series)
             jgjca_ts[:, i+1] = np.array(cell.jgjca_time_series)
             jgjip3_ts[:, i+1] = np.array(cell.jgjip3_time_series)
-        
-        ca_bin_ts = ModelParameters.extract_bin_signals(cells, ca_ts)
 
-        return ca_ts, ca_bin_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts
+        return ca_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts
     
     @staticmethod
-    def extract_bin_signals(cells: list, ca_ts: np.ndarray):
+    def extract_bin_signals(ca_ts: np.ndarray, act_frames: np.ndarray, deact_frames: np.ndarray):
         """
         Extracts binarized signals based on ca ts, activation time and activation amplitude
         """
         ca_bin_ts = np.zeros(ca_ts.shape, float)
         ts_length: int = len(ca_ts)
         ca_bin_ts[:,0] = ca_ts[:,0]
-        for i, cell in enumerate(cells):
-            if cell.index_of_activation is not None:
-                start: int = cell.index_of_activation
-                max_amp = np.amax(ca_ts[start:, i+1])
-                max_time = np.where(ca_ts[start:, i+1] == max_amp)[0]
-                end = None
-                for j in range(start+1, ts_length, 1):
-                    if ca_ts[j, i+1] < (cell.activation_amp+max_amp)/2.0 and j > max_time:
-                        end = j
-                        break
-                ca_bin_ts[start:, i+1] = 1
-                if end is not None:
-                    ca_bin_ts[end:, i+1] = 0
+        cell_num: int = len(ca_ts[0])-1
+        for i in range(cell_num):
+            if not np.isnan(act_frames[i]):
+                start: int = int(act_frames[i])
+                end: int = int(deact_frames[i])
+                ca_bin_ts[start:end, i+1] = 1
         return ca_bin_ts
         
 
@@ -379,25 +371,26 @@ class ModelParameters:
         Extracts activation times of cells
         """
         act_times: np.ndarray = np.zeros(len(cells), float)
+        act_amps: np.ndarray = np.zeros(len(cells), float)
+        act_frames: np.ndarray = np.zeros(len(cells), float)
         for i, cell in enumerate(cells):
             act_times[i] = np.nan
+            act_amps[i] = np.nan
+            act_frames[i] = np.nan
             if(cell.time_of_activation):
                 act_times[i] = cell.time_of_activation
+                act_amps[i] = cell.activation_amp
+                act_frames[i] = cell.index_of_activation
 
         #act_times = act_times - np.nanmin(act_times)
-        return act_times
+        return act_times, act_amps, act_frames
     
-    @staticmethod
-    def plot_activation_sequence(model):
+    def plot_activation_sequence(self, pos: np.ndarray, act_times: np.ndarray,
+                                 capsule_data):
         """
         Plots activation sequence of cells
         """
-        capsule_data = load_capsule_data(model.capsule)
-        stimulated_cell = model.stimulated_cell
-        pos = np.array([v["cm_xy"] for v in capsule_data["cells"].values()])
-        act_times = np.loadtxt(f'results/capsule_{model.capsule}/act_times.txt')
         cell_num = len(pos)
-
         vmin=np.nanmin(act_times, axis=None)
         vmax=np.nanmax(act_times, axis=None)
 
@@ -421,14 +414,14 @@ class ModelParameters:
             ax.add_patch(polygon)
         ax.scatter(pos[:,0], pos[:,1], s=12, c="black")
         ax.scatter(pos[:,0], pos[:,1], s=12, c='black', zorder=10)
-        ax.scatter(pos[stimulated_cell,0], pos[stimulated_cell,1], s=30, color='black', marker='x')
+        ax.scatter(pos[self.stimulated_cell,0], pos[self.stimulated_cell,1], s=30, color='black', marker='x')
 
         ax.plot([minx,minx+dx], [miny, miny], linewidth=3, color='black')
         ax.text(minx+1, miny-4, r'10 $\mathrm{\mu}$m', fontsize=14)
 
         ax.set_axis_off()
         fig.savefig(
-            f"results/capsule_{model.capsule}/activation_sequence.png",
+            f"results/capsule_{self.capsule}/activation_sequence.png",
             dpi=600, bbox_inches='tight')
         plt.close(fig)
     
@@ -469,22 +462,23 @@ class ModelParameters:
                   'w', encoding="utf-8") as json_file:
             json.dump(model_parameters, json_file, indent=4, cls=self.EnumEncoder)
     
-    def calculate_activity_params(self, ca_ts: np.ndarray, act_times: np.ndarray) -> tuple[np.ndarray]:
+    def calculate_activity_params(self, ca_ts: np.ndarray, act_times: np.ndarray,
+                                  start_amps: np.ndarray, act_frames: np.ndarray, time: np.ndarray) -> tuple[np.ndarray]:
         """
         Calculates cell parameters: signal duration, signal amplitude and response time
         """
-        sampling: int = self.sampling
-        act_frames: list[int] = [int(act_time*sampling) if not np.isnan(act_time) else np.nan for act_time in act_times]
-        max_amps_indx: list[int] = [np.argmax(ca_ts[act_frame:, i]) + act_frame if not np.isnan(act_frame) else np.nan for i, act_frame in enumerate(act_frames)]
-        start_amps: list[float] = [ca_ts[act_frame, i] if not np.isnan(act_frame) else np.nan for i, act_frame in enumerate(act_frames)]
+        max_amps_indx: list[int] = [np.argmax(ca_ts[int(act_frame):, i]) + int(act_frame) if not np.isnan(act_frame) else np.nan for i, act_frame in enumerate(act_frames)]
         max_amps: list[float] = [ca_ts[max_indx, i] if not np.isnan(max_indx) else np.nan for i, max_indx in enumerate(max_amps_indx)]
-        deact_indx: list[int] = [np.where(ca_ts[max_amp:, i] <= (max_amps[i]+start_amps[i])/2.0)[0] if not np.isnan(max_amp) else np.nan for i, max_amp in enumerate(max_amps_indx)]
-        deact_indx: list[int] = [indx[0]+max_amp if isinstance(indx, list) and len(indx) > 0 and not np.isnan(max_amp) else len(ca_ts)-1 for indx, max_amp in zip(deact_indx, max_amps_indx)]
+        deact_frames: list[np.ndarray] = [np.where(ca_ts[max_amp_indx:, i] <= (max_amps[i]+start_amps[i])/2.0)[0] if not np.isnan(max_amp_indx) else np.nan for i, max_amp_indx in enumerate(max_amps_indx)]
+        deact_frames: list[int] = [deact[0] if isinstance(deact, np.ndarray) else np.nan for deact in deact_frames]
+        deact_frames: list[int] = [deact+max_amp_indx if not np.isnan(deact) and not np.isnan(max_amp_indx) else np.nan for deact, max_amp_indx in zip(deact_frames, max_amps_indx)]
+        deact_frames: list[int] = [len(time)-1 if not np.isnan(act_frame) and np.isnan(deact) else deact for act_frame, deact in zip(act_frames, deact_frames)]
 
-        sig_durs: list[float] = [(end_frame - start_frame)/sampling if not np.isnan(start_frame) and not np.isnan(end_frame) else np.nan for start_frame, end_frame in zip(act_frames, deact_indx)]
+        sig_durs: list[float] = [(time[int(end_frame)] - time[int(start_frame)]) if not np.isnan(start_frame) and not np.isnan(end_frame) else np.nan
+                                 for start_frame, end_frame in zip(act_frames, deact_frames)]
         response_times: np.ndarray = act_times - np.nanmin(act_times)
 
-        return np.array(sig_durs), response_times, np.array(max_amps)
+        return np.array(sig_durs), response_times, np.array(max_amps), np.array(deact_frames)
 
     def save_activity_params(self, durations: np.ndarray,
                              resp_times: np.ndarray, max_amps: np.ndarray,
@@ -521,8 +515,9 @@ class ModelParameters:
         """
         avg_stderr: np.ndarray = np.zeros((len(groups), 2), float)
         for group, members in groups.items():
-            avg_value: float = np.nanmean(data[members]) if len(data[members])>0 else np.nan
-            std_err: float = np.nanstd(data[members])/np.sqrt(len(members)) if len(data[members])>0 else np.nan
+            valid_cells: int = sum([1 if not np.isnan(data[member]) else 0 for member in members])
+            avg_value: float = np.nanmean(data[members]) if valid_cells>0 else np.nan
+            std_err: float = np.nanstd(data[members])/np.sqrt(len(members)) if valid_cells>0 else np.nan
             avg_stderr[group, 0] = avg_value
             avg_stderr[group, 1] = std_err
         return avg_stderr
@@ -534,7 +529,7 @@ class ModelParameters:
         """
         fractions: list[float] = []
         for _, members in cell_groups.items():
-            fraction: float = len(np.where(resp_times[members] != np.nan)[0])/len(members)
+            fraction: float = sum([1 if not np.isnan(resp_time) else 0 for resp_time in resp_times[members]])/len(members)
             fractions.append(fraction)
         return fractions
 
