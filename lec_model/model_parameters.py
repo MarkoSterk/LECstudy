@@ -491,6 +491,16 @@ class ModelParameters:
         np.savetxt(f"results/capsule_{self.capsule}/max_amplitudes.txt", max_amps, fmt="%.4lf")
         np.savetxt(f"results/capsule_{self.capsule}/fraction_of_active_cells.txt",
                    fractions_act_cells, fmt="%.2lf")
+    
+    def save_clustered_activity_params(self, group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times):
+        """
+        Saves clustered activity parameters
+        """
+        with open(f"results/capsule_{self.capsule}/clusstered_activity_params.txt", "w", encoding="utf-8") as file:
+            print("distance fraction_act_cells sig_dur stderr_sig_dur sig_amp stderr_sig_amp resp_time stderr_resp_time", file=file)
+            for i in range(len(group_distances)):
+                print(f"{group_distances[i]:.2f} {fractions_act_cells[i]:.3f} {clustered_durations[i,0]:.2f} {clustered_durations[i,1]:.2f} {clustered_amps[i,0]:.2f} {clustered_amps[i,1]:.2f} {clustered_resp_times[i,0]:.2f} {clustered_resp_times[i,1]:.2f}", file=file)
+
 
     def cluster_cells(self, pos: np.ndarray, bins: int) -> tuple[dict[list[int]], list[float]]:
         """
@@ -523,7 +533,7 @@ class ModelParameters:
         return avg_stderr
 
     def get_fraction_of_act_cells(self, cell_groups: dict[list[int]],
-                                  resp_times: np.ndarray) -> list[float]:
+                                  resp_times: np.ndarray) -> np.ndarray:
         """
         Calculates number of active cells for each group
         """
@@ -531,7 +541,7 @@ class ModelParameters:
         for _, members in cell_groups.items():
             fraction: float = sum([1 if not np.isnan(resp_time) else 0 for resp_time in resp_times[members]])/len(members)
             fractions.append(fraction)
-        return fractions
+        return np.array(fractions)
 
     def plot_errorbars(self, ax, x: list[int], data: np.ndarray,
                        ylabel, xlabel=r"Distance from stimulation ($\mathrm{\mu}$m)"):
@@ -547,7 +557,7 @@ class ModelParameters:
         return ax
 
     def plot_activity_params(self, durations: np.ndarray, resp_times: np.ndarray,
-                             amps: np.ndarray, pos: np.ndarray, bins: int = 5):
+                             amps: np.ndarray, pos: np.ndarray, bins: int = 5) -> tuple[np.ndarray]:
         """
         Plots all cell activity params
         """
@@ -558,7 +568,7 @@ class ModelParameters:
         clustered_resp_times: np.ndarray = self.calculate_bin_avg_and_stderr(resp_times,
                                                                              cell_groups)
         clustered_amps: np.ndarray = self.calculate_bin_avg_and_stderr(amps, cell_groups)
-        fraction_act_cells: list[float] = self.get_fraction_of_act_cells(cell_groups, resp_times)
+        fraction_act_cells: np.ndarray = self.get_fraction_of_act_cells(cell_groups, resp_times)
         fig, axes = plt.subplots(2, 2, figsize=(10, 10))
         axes[0,1] = self.plot_errorbars(axes[0,1], group_distances, clustered_durations,
                                         "Signal duration (s)")
@@ -575,4 +585,4 @@ class ModelParameters:
         fig.savefig(f"results/capsule_{self.capsule}/cell_activity_params.png",
                     dpi=600, bbox_inches='tight', pad_inches=0.01)
         plt.close(fig)
-        return fraction_act_cells
+        return group_distances, fraction_act_cells, clustered_durations, clustered_amps, clustered_resp_times
