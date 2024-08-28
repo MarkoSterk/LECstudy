@@ -61,7 +61,6 @@ class ModelParameters:
     t: float = 0.0 #initial time
     dt: float = 0.01 #integration step
 
-    record_every: int = 1 ###record every 5th simulation steps
     sampling: float = 1.0/dt
 
     """
@@ -348,13 +347,84 @@ class ModelParameters:
 
         return ca_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts
     
-    @staticmethod
-    def extract_bin_signals(ca_ts: np.ndarray, act_frames: np.ndarray, deact_frames: np.ndarray):
+    def calculate_activation_frames(self, time: np.ndarray, ca_ts: np.ndarray,
+                                    cells: list) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates activation frames and times for cells
+        """
+        calc_start_frame = int(self.time_interval_for_slope/self.dt)
+        calc_half_start = int(calc_start_frame/2)
+        act_frames = np.ones(len(cells), float) * np.nan
+        act_times = np.ones(len(cells), float) * np.nan
+        for i, cell in enumerate(cells):
+            if cell.time_of_activation is not None:
+                for j in range(calc_half_start, len(ca_ts)-calc_half_start, 1):
+                    slope, _ = np.polyfit(time[j-calc_half_start:j+calc_half_start],
+                                          ca_ts[j-calc_half_start:j+calc_half_start,i],
+                                          1)
+                    if slope >= self.slopeTh:
+                        act_frames[i] = j
+                        act_times[i] = time[j]
+                        break
+        return act_frames, act_times
+    
+    def calculate_peak_amplitudes(self, ca_ts: np.ndarray, act_frames: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates peak amplitudes
+        """
+        peak_amps = np.ones(len(ca_ts), float) * np.nan
+        peak_amps_indx = np.ones(len(ca_ts), float) * np.nan
+        _, cell_num = ca_ts.shape
+        for i in range(cell_num):
+            if not np.isnan(act_frames[i]):
+                max_indx = np.argmax(ca_ts[int(act_frames[i]):,i]) + act_frames[i]
+                max_amp = ca_ts[int(max_indx), i]
+                peak_amps[i] = max_amp
+                peak_amps_indx[i] = max_indx
+
+        return peak_amps, peak_amps_indx
+
+    def calculate_deactivation_frames(self, time: np.ndarray, ca_ts: np.ndarray, act_frames: np.ndarray,
+                                      peak_amps_indx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates deactivation frames and times for cells
+        """
+        deact_frames = np.ones(len(ca_ts[0]), float) * np.nan
+        deact_times = np.ones(len(ca_ts[0]), float) * np.nan
+        _, cell_num = ca_ts.shape
+        for i in range(cell_num):
+            if not np.isnan(act_frames[i]) and not np.isnan(peak_amps_indx[i]):
+                act_amp = ca_ts[int(act_frames[i]), i]
+                max_amp = ca_ts[int(peak_amps_indx[i]), i]
+                deact_amp = (act_amp+max_amp)/2
+                unactive_frames = np.where(ca_ts[int(peak_amps_indx[i]):,i]<=deact_amp)[0]
+                if len(unactive_frames) == 0:
+                    deact_frames[i] = len(ca_ts)-1
+                    deact_times[i] = time[len(ca_ts)-1]
+                else:
+                    deact_frames[i] = unactive_frames[0] + peak_amps_indx[i]
+                    deact_times[i] = time[int(deact_frames[i])]
+
+        return deact_frames, deact_times
+
+
+    def extract_bin_signals(self, ca_ts: np.ndarray, cells: list):
         """
         Extracts binarized signals based on ca ts, activation time and activation amplitude
         """
+
+        act_frames: np.ndarray
+        act_times: np.ndarray
+        act_frames, act_times = self.calculate_activation_frames(ca_ts[:,0], ca_ts[:,1:], cells)
+        peak_amps: np.ndarray
+        peak_amps_indx: np.ndarray
+        peak_amps, peak_amps_indx = self.calculate_peak_amplitudes(ca_ts[:,1:], act_frames)
+        deact_frames: np.ndarray
+        deact_times: np.ndarray
+        deact_frames, deact_times = self.calculate_deactivation_frames(ca_ts[:,0], ca_ts[:,1:],
+                                                                       act_frames, peak_amps_indx)
+
         ca_bin_ts = np.zeros(ca_ts.shape, float)
-        ts_length: int = len(ca_ts)
         ca_bin_ts[:,0] = ca_ts[:,0]
         cell_num: int = len(ca_ts[0])-1
         for i in range(cell_num):
@@ -362,8 +432,7 @@ class ModelParameters:
                 start: int = int(act_frames[i])
                 end: int = int(deact_frames[i])
                 ca_bin_ts[start:end, i+1] = 1
-        return ca_bin_ts
-        
+        return ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times
 
     @staticmethod
     def extracts_activation_times(cells: list):

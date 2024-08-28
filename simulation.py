@@ -16,16 +16,15 @@ model_parameters: dict = dict(
     stim_dur = 3.0, #stimulation duration
     initiator_cell_mode = MP.INITMode.POINT,
     cell_height=8.0,
-    diffusion_mode = MP.ATPMode.DECOUPLED,
-    Cgjip3 = 0.05,
+    diffusion_mode = MP.ATPMode.POINT,
+    Cgjip3 = 0.03, #0.05
     L0init = 0.2, #0.2 concentration of secreted ATP by stimulated cell (fmol)
     char_dist= 30.0, #characteristic distance of ATP release decrease
-    apyrase_deg = False, #True for apiraza, False (default) no apiraza
+    apyrase_deg = True, #True for apiraza, False (default) no apiraza
     apyrase_char_time = 1.0, #s
-    Cth = 0.15, ##threshold amplitude of normalized calcium
-    time_interval_for_slope = 4.0, # seconds
-    slopeTh = 0.002,#0.01 ## uM/s
-    Cth_act = 0.125 + 0.025,
+    time_interval_for_slope = 3.0, # seconds
+    slopeTh = 0.003,#0.01 ## uM/s
+    Cth_for_atp = 0.15,
     cell_heterogeneity = True,
     ca_noise_amp = 0.00,
     ip3_noise_amp = 0.00
@@ -64,21 +63,16 @@ cells: list[CellModel] = CellModel.generate_cells(model,
 model.run_simulation(cells, cell_distances)
 
 ca_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts = MP.extract_time_series_data(cells)
-act_times, act_amps, act_frames = MP.extracts_activation_times(cells)
 
-
+ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times = model.extract_bin_signals(ca_ts, cells)
+durations = deact_times - act_times
+response_times = act_times - np.nanmin(act_times)
 model.plot_activation_sequence(pos, act_times, capsule_data)
 
-durations, resp_times, amps, deact_frames = model.calculate_activity_params(ca_ts[:,1:],
-                                                              act_times,
-                                                              act_amps,
-                                                              act_frames,
-                                                              ca_ts[:,0].flatten())
-ca_bin_ts = model.extract_bin_signals(ca_ts, act_frames, deact_frames)
 model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times, jgjca_ts, jgjip3_ts)
 model.plot_time_series(ca_ts, ca_bin_ts)
-group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times = model.plot_activity_params(durations, resp_times, amps, pos, 5)
-model.save_activity_params(durations, resp_times, amps, fractions_act_cells)
+group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times = model.plot_activity_params(durations, response_times, peak_amps, pos, 5)
+model.save_activity_params(durations, response_times, peak_amps, fractions_act_cells)
 model.save_clustered_activity_params(group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times)
 
 stim_cell_neighbours = [int(neigh) for neigh in np.nonzero(cmat[:, stimulated_cell])[0]]

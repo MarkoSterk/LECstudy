@@ -74,8 +74,8 @@ class CellModel(CellParameters):
         """
         Runs next model step
         """
-        self.store_data(step, time, L, jgjca, jgjip3)
-        self.calculate_activation_time(time)
+        self.store_data(time, L, jgjca, jgjip3)
+        self.calculate_atp_release_time(time)
 
         dstretch: float = self.calculate_strech(time)
         currents: dict[str, float] = {**self.calculate_currents(L), "jgjca": jgjca, "jgjip3": jgjip3, "L": L}
@@ -129,19 +129,13 @@ class CellModel(CellParameters):
             "rh": rh
         }
 
-    def calculate_activation_time(self, time: float):
+    def calculate_atp_release_time(self, time: float):
         """
         Calculates cells activation time from TS slope
         """
-        time_step = self.model.record_every * self.model.dt ## time between two data points
-        points_for_slope = int(self.model.time_interval_for_slope/time_step)
-        if len(self.calcium_time_series)>points_for_slope+5 and not self.time_of_activation:
-            slope = (self.calcium_time_series[-1] - self.calcium_time_series[-points_for_slope])/(points_for_slope*time_step)
-            if slope>self.model.slopeTh and self.calcium_time_series[-1]>self.model.Cth_act:
-                self.time_of_activation = time
-                self.index_of_activation = len(self.calcium_time_series)
-                self.activation_amp = self.calcium_time_series[-1]
-                #print(f"Cell {self.cell_num} activated with amplitude {self.activation_amp} ({self.model.Cth_act})")
+        if not self.time_of_activation and self.calcium_time_series[-1]>self.model.Cth_for_atp:
+            self.time_of_activation = time
+            #print(f"Cell {self.cell_num} activated with amplitude {self.activation_amp} ({self.model.Cth_act})")
 
 
     def calculate_differentials(self, currents: dict[str, float]):
@@ -187,17 +181,16 @@ class CellModel(CellParameters):
         self.P += differentials["dP"]
         self.PIP += differentials["dPIP"]
 
-    def store_data(self, step: int, time: float, L: int, jgjca: float, jgjip3: float):
+    def store_data(self, time: float, L: int, jgjca: float, jgjip3: float):
         """
         Stores current data to designated lists
         """
-        if step%self.model.record_every == 0:
-            self.simulation_time.append(time)
-            self.calcium_time_series.append(self.C)
-            self.ip3_time_series.append(self.P)
-            self.atp_time_series.append(L)
-            self.jgjca_time_series.append(jgjca)
-            self.jgjip3_time_series.append(jgjip3)
+        self.simulation_time.append(time)
+        self.calcium_time_series.append(self.C)
+        self.ip3_time_series.append(self.P)
+        self.atp_time_series.append(L)
+        self.jgjca_time_series.append(jgjca)
+        self.jgjip3_time_series.append(jgjip3)
 
     @classmethod
     def generate_cells(cls, model, stimulated_cell: int, init_cells: list[int],
