@@ -64,7 +64,7 @@ model.run_simulation(cells, cell_distances)
 
 ca_ts, ip3_ts, atp_ts, jgjca_ts, jgjip3_ts = MP.extract_time_series_data(cells)
 
-ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times = model.extract_bin_signals(ca_ts, cells)
+ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times, min_amps, min_amps_indx = model.extract_bin_signals(ca_ts, cells)
 durations = deact_times - act_times
 response_times = act_times - np.nanmin(act_times)
 model.plot_activation_sequence(pos, act_times, capsule_data)
@@ -72,8 +72,9 @@ model.plot_activation_sequence(pos, act_times, capsule_data)
 model.save_ts_data(ca_ts, ca_bin_ts, ip3_ts, atp_ts, act_times, jgjca_ts, jgjip3_ts)
 model.plot_time_series(ca_ts, ca_bin_ts)
 group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times = model.plot_activity_params(durations, response_times, peak_amps, pos, 5)
-model.save_activity_params(durations, response_times, peak_amps, fractions_act_cells)
-model.save_clustered_activity_params(group_distances, fractions_act_cells, clustered_durations, clustered_amps, clustered_resp_times)
+model.save_activity_params(durations, response_times, peak_amps, min_amps, fractions_act_cells)
+model.save_clustered_activity_params(group_distances, fractions_act_cells, clustered_durations,
+                                     clustered_amps, clustered_resp_times)
 
 stim_cell_neighbours = [int(neigh) for neigh in np.nonzero(cmat[:, stimulated_cell])[0]]
 

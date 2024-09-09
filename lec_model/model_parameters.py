@@ -383,6 +383,23 @@ class ModelParameters:
                 peak_amps_indx[i] = max_indx
 
         return peak_amps, peak_amps_indx
+    
+    def calculate_min_amplitudes(self, ca_ts: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates min amplitudes before stimulation
+        """
+        print("Time of stim: ", self.time_of_stimulation)
+        cutoff = 20 if self.time_of_stimulation>20 else self.time_of_stimulation
+        min_amps = np.ones(len(ca_ts), float) * np.nan
+        min_amps_indx = np.ones(len(ca_ts), float) * np.nan
+        _, cell_num = ca_ts.shape
+        for i in range(cell_num):
+            min_indx = np.argmin(ca_ts[int(self.time_of_stimulation)-int(cutoff):int(self.time_of_stimulation),i]);
+            min_amp = ca_ts[int(min_indx), i]
+            min_amps[i] = min_amp
+            min_amps_indx[i] = min_indx
+
+        return min_amps, min_amps_indx
 
     def calculate_deactivation_frames(self, time: np.ndarray, ca_ts: np.ndarray, act_frames: np.ndarray,
                                       peak_amps_indx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -419,6 +436,9 @@ class ModelParameters:
         peak_amps: np.ndarray
         peak_amps_indx: np.ndarray
         peak_amps, peak_amps_indx = self.calculate_peak_amplitudes(ca_ts[:,1:], act_frames)
+        min_amps: np.ndarray
+        min_amps_indx: np.ndarray
+        min_amps, min_amps_indx = self.calculate_min_amplitudes(ca_ts[:,1:])
         deact_frames: np.ndarray
         deact_times: np.ndarray
         deact_frames, deact_times = self.calculate_deactivation_frames(ca_ts[:,0], ca_ts[:,1:],
@@ -432,7 +452,7 @@ class ModelParameters:
                 start: int = int(act_frames[i])
                 end: int = int(deact_frames[i])
                 ca_bin_ts[start:end, i+1] = 1
-        return ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times
+        return ca_bin_ts, act_frames, act_times, peak_amps, peak_amps_indx, deact_frames, deact_times, min_amps, min_amps_indx
 
     @staticmethod
     def extracts_activation_times(cells: list):
@@ -551,13 +571,14 @@ class ModelParameters:
 
     def save_activity_params(self, durations: np.ndarray,
                              resp_times: np.ndarray, max_amps: np.ndarray,
-                             fractions_act_cells: np.ndarray):
+                             min_amps: np.ndarray, fractions_act_cells: np.ndarray):
         """
         Saves activity params
         """
         np.savetxt(f"results/capsule_{self.capsule}/signal_durations.txt", durations, fmt="%.4lf")
         np.savetxt(f"results/capsule_{self.capsule}/response_times.txt", resp_times, fmt="%.4lf")
         np.savetxt(f"results/capsule_{self.capsule}/max_amplitudes.txt", max_amps, fmt="%.4lf")
+        np.savetxt(f"results/capsule_{self.capsule}/relative_amplitudes.txt", max_amps-min_amps, fmt="%.4lf")
         np.savetxt(f"results/capsule_{self.capsule}/fraction_of_active_cells.txt",
                    fractions_act_cells, fmt="%.2lf")
     

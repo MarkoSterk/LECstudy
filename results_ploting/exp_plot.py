@@ -8,9 +8,9 @@ from configs import get_dimensions
 data_folder: str = "data/experiment"
 results_folder: str ="results/experiment"
 
-control: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_CONTROL.txt")
-apyrase: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_APIRAZA.txt")
-cbx: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_CBX.txt")
+control: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_control.txt")
+apyrase: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_apiraza.txt")
+cbx: np.ndarray = np.loadtxt(f"{data_folder}/all_values_dist_frac_resptime_dur_amp_value_std_cbx.txt")
 
 ##Fractions
 fig = plt.figure(figsize=get_dimensions())
@@ -78,7 +78,7 @@ ax.errorbar(apyrase[:,0], apyrase[:,7], apyrase[:,8], c='red',
 ax.errorbar(cbx[:2,0], cbx[:2,7], cbx[:2,8], c='green',
             linewidth=1.0, marker="o", label="cbx")
 ax.set_xlabel(r"Distance from stimulation ($\mathrm{\mu}$m)")
-ax.set_ylabel("Signal amplitude ($\mathrm{\mu}$M)")
+ax.set_ylabel("Relative amplitude ($\mathrm{\mu}$M)")
 #ax.set_xlim(15, 80)
 #ax.set_ylim(0, 1.05)
 ax.legend(loc="upper right")
@@ -87,6 +87,7 @@ fig.savefig(f"{results_folder}/amplitudes.png", dpi=600,
 plt.close(fig)
 
 
+##POOLED DATA PLOT
 control: np.ndarray = np.loadtxt(f"{data_folder}/pooled_data_dist_fracs_resptimes_durs_amps_avg_stderr_control.txt")
 apyrase: np.ndarray = np.loadtxt(f"{data_folder}/pooled_data_dist_fracs_resptimes_durs_amps_avg_stderr_apiraza.txt")
 cbx: np.ndarray = np.loadtxt(f"{data_folder}/pooled_data_dist_fracs_resptimes_durs_amps_avg_stderr_cbx.txt")
@@ -157,7 +158,7 @@ ax.errorbar(apyrase[:,0], apyrase[:,6], apyrase[:,7], c='red',
 ax.errorbar(cbx[:2,0], cbx[:2,6], cbx[:2,7], c='green',
             linewidth=1.0, marker="o", label="cbx")
 ax.set_xlabel(r"Distance from stimulation ($\mathrm{\mu}$m)")
-ax.set_ylabel("Signal amplitude ($\mathrm{\mu}$M)")
+ax.set_ylabel("Relative amplitude ($\mathrm{\mu}$M)")
 #ax.set_xlim(15, 80)
 #ax.set_ylim(0, 1.05)
 ax.legend(loc="upper right")

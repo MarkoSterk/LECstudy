@@ -20,7 +20,7 @@ ax.plot(amps[:,0], amps[:,1], c='black', linewidth=1.0, marker="o", label="contr
 ax.plot(amps[:,0], amps[:,2], c='red', linewidth=1.0, marker="o", label="apyrase")
 ax.plot(amps[:,0], amps[:,3], c='green', linewidth=1.0, marker="o", label="cbx")
 ax.set_xlabel(r"Distance from stimulation ($\mathrm{\mu}$m)")
-ax.set_ylabel("Signal amplitude ($\mathrm{\mu}$M)")
+ax.set_ylabel("Relative amplitude ($\mathrm{\mu}$M)")
 ax.set_xlim(15, 80)
 ax.set_ylim(0.15, 0.32)
 ax.legend(loc="upper right")
