@@ -362,7 +362,8 @@ class ModelParameters:
                     slope, _ = np.polyfit(time[j-calc_half_start:j+calc_half_start],
                                           ca_ts[j-calc_half_start:j+calc_half_start,i],
                                           1)
-                    if slope >= self.slopeTh:
+                    #if slope >= self.slopeTh:
+                    if (slope >= self.slopeTh and np.max(ca_ts[:,i])>0.165): # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         act_frames[i] = j
                         act_times[i] = time[j]
                         break
@@ -413,7 +414,8 @@ class ModelParameters:
             if not np.isnan(act_frames[i]) and not np.isnan(peak_amps_indx[i]):
                 act_amp = ca_ts[int(act_frames[i]), i]
                 max_amp = ca_ts[int(peak_amps_indx[i]), i]
-                deact_amp = (act_amp+max_amp)/2
+                #deact_amp = (act_amp+max_amp)/2
+                deact_amp = act_amp+0.5*(max_amp-act_amp) ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 unactive_frames = np.where(ca_ts[int(peak_amps_indx[i]):,i]<=deact_amp)[0]
                 if len(unactive_frames) == 0:
                     deact_frames[i] = len(ca_ts)-1
@@ -488,7 +490,8 @@ class ModelParameters:
             if np.isnan(act_times[i]):
                 tru_col_map.append(plt.cm.gray(0.4))
             else:
-                tru_col_map.append(plt.cm.jet_r(float(act_times[i]-vmin)/float(vmax-vmin)))
+                #tru_col_map.append(plt.cm.jet_r(float(act_times[i]-vmin)/float(vmax-vmin)))
+                tru_col_map.append(plt.cm.jet_r(float(act_times[i]-15)/float(23-15))) # !!!!!!!!!!!!!!!!!!!!!
 
         dx=10.0
 
